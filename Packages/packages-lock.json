@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.antilatency.sdk": {
+      "version": "https://github.com/AntilatencySDK/Release_4.3.0-rc.git#subset-7f8ce48b2a3a0c8ffe485d7487518118af9af03d",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "acab78213eacee32ef286c7040190063f1fc2026"
+    },
     "com.unity.editorcoroutines": {
       "version": "1.0.0",
       "depth": 1,
