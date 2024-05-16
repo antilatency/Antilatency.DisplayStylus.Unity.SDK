@@ -11,7 +11,7 @@ https://github.com/AntilatencySDK/Release_4.3.0.git#subset-8c17f2d9960a027336efd
 ### Add Antilatency.DisplayStylus.Unity.SDK
 Add the following URL to your Package Manager:
 ```
-https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git?path=/Assets/com.Antilatency.DisplayStylus.Unity.SDK
+https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git?path=/Assets/com.Antilatency.DisplayStylus.Unity.SDK#1.0.0
 ```
 
 ## Adding DisplayStylus to the Scene
