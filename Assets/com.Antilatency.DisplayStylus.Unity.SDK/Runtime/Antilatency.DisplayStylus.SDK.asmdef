@@ -1,0 +1,16 @@
+{
+    "name": "Antilatency.DisplayStylus.SDK",
+    "rootNamespace": "Antilatency.DisplayStylus.SDK",
+    "references": [
+        "Antilatency.SDK"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
