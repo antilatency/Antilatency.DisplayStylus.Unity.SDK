@@ -1,4 +1,3 @@
-using System;
 using Antilatency.Alt.Environment;
 using UnityEngine;
 

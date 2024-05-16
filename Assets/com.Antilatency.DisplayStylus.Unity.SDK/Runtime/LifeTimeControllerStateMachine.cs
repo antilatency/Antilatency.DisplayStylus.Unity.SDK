@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Antilatency.DisplayStylus {
+namespace Antilatency.DisplayStylus.SDK {
     public abstract class LifeTimeControllerStateMachine : LifeTimeController {
 
         [Serializable]

@@ -12,7 +12,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Antilatency.DisplayStylus {
+namespace Antilatency.DisplayStylus.SDK {
     [RequireComponent(typeof(Display))]
     public class StylusesCreator : LifeTimeControllerStateMachine {
 

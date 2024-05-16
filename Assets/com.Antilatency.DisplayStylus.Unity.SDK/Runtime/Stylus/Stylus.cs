@@ -4,9 +4,8 @@ using Antilatency.Alt.Tracking;
 using Antilatency.HardwareExtensionInterface;
 using Antilatency.HardwareExtensionInterface.Interop;
 using UnityEngine;
-using Antilatency;
 
-namespace Antilatency.DisplayStylus
+namespace Antilatency.DisplayStylus.SDK
 {
     public class Stylus : LifeTimeControllerStateMachine
     {

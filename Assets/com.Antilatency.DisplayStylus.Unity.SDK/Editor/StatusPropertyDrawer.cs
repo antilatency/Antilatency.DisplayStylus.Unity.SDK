@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEditor;
 
-namespace Antilatency.DisplayStylus {
+namespace Antilatency.DisplayStylus.SDK {
     [CustomPropertyDrawer(typeof(LifeTimeControllerStateMachine.TStatus))]
     public class StatusDrawer : PropertyDrawer {
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {

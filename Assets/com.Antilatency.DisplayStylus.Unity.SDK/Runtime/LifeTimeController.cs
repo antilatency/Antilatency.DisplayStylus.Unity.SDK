@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace Antilatency.DisplayStylus {
+namespace Antilatency.DisplayStylus.SDK {
     public class LifeTimeController : MonoBehaviour {
         void OnEnable() {
             //Debug.Log("OnEnable");

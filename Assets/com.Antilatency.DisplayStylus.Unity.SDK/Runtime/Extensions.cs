@@ -1,5 +1,5 @@
 
-namespace Antilatency.DisplayStylus {
+namespace Antilatency.DisplayStylus.SDK {
     public static partial class Extensions {
         public static bool IsNull(this Antilatency.InterfaceContract.IUnsafe value) {
             if (value == null)
