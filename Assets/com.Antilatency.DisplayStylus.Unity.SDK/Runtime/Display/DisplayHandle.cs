@@ -54,8 +54,8 @@ namespace Antilatency.DisplayStylus.SDK {
                 }
             }
 
-            var position = -_display.DisplayProperties.ScreenPosition - _display.DisplayProperties.ScreenX * OriginX -
-                _display.DisplayProperties.ScreenY * OriginY;
+            var position = -_display.DisplayProperties.ScreenPosition - _display.DisplayProperties.ScreenAxisX * OriginX -
+                _display.DisplayProperties.ScreenAxisY * OriginY;
 
             var scale = Vector3.one;
             if (ScaleMode != TScaleMode.RealSize){

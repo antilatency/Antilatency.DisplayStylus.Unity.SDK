@@ -96,12 +96,12 @@ namespace Antilatency.DisplayStylus.SDK{
         }
         
         public Vector2 GetHalfScreenSize() {
-            return new Vector2(DisplayProperties.ScreenX.magnitude, DisplayProperties.ScreenY.magnitude);
+            return new Vector2(DisplayProperties.ScreenAxisX.magnitude, DisplayProperties.ScreenAxisY.magnitude);
         }
         
         public Matrix4x4 GetScreenToEnvironment() {
-            var x = DisplayProperties.ScreenX.normalized;
-            var y = DisplayProperties.ScreenY.normalized;
+            var x = DisplayProperties.ScreenAxisX.normalized;
+            var y = DisplayProperties.ScreenAxisY.normalized;
             Vector4 w = DisplayProperties.ScreenPosition;
             w.w = 1;
             return new Matrix4x4(x, y, Vector3.Cross(x, y), w);
