@@ -100,14 +100,13 @@ namespace Antilatency.DisplayStylus.SDK
             State extrapolatedState = _trackingCotask.getExtrapolatedState(Pose.identity, time);
             Pose extrapolatedPose = extrapolatedState.pose;
             
-            var inverseEnvironmentRotation = Quaternion.Inverse(_display.EnvironmentRotation);
-            var toInverseEnvironmentMatrix = Math.QuaternionToMatrix(inverseEnvironmentRotation);
+            var inverseQ = Quaternion.Inverse(_display.EnvironmentRotation);
             
-            transform.localPosition = toInverseEnvironmentMatrix.MultiplyPoint(extrapolatedPose.position);
-            transform.localRotation = extrapolatedPose.rotation * toInverseEnvironmentMatrix.rotation;
+            transform.localPosition = inverseQ * extrapolatedPose.position;
+            transform.localRotation = inverseQ * extrapolatedPose.rotation;
             
             Transform displayHandleT = StylusesCreator.Instance.transform;
-            Vector3 worldVelocity = displayHandleT.TransformVector(toInverseEnvironmentMatrix.MultiplyVector(extrapolatedState.velocity));
+            Vector3 worldVelocity = displayHandleT.TransformVector(inverseQ * extrapolatedState.velocity);
             Vector3 angularVelocity = displayHandleT.TransformDirection(extrapolatedState.localAngularVelocity);
 
             _extrapolatedPose = new Pose(transform.position, transform.rotation);

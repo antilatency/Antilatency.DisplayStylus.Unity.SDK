@@ -95,7 +95,7 @@ namespace Antilatency.DisplayStylus.SDK {
             if (ShowDisplayBorder){
                 if (!_display.GetEnvironment().IsNull()){
                     var environmentRotation = _display.EnvironmentRotation;
-                    Handles.matrix = _display.transform.localToWorldMatrix * Math.QuaternionToMatrix(Quaternion.Inverse(environmentRotation));
+                    Handles.matrix = _display.transform.localToWorldMatrix * Matrix4x4.Rotate(Quaternion.Inverse(environmentRotation));
                     
                     foreach (var i in _display.GetEnvironment().getMarkers()){
                         Handles.SphereHandleCap(0, i, Quaternion.identity, 0.005f, EventType.Repaint);
