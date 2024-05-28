@@ -16,18 +16,13 @@ namespace Antilatency.DisplayStylus.SDK {
     [RequireComponent(typeof(Display))]
     public class StylusesCreator : LifeTimeControllerStateMachine {
 
-        public static StylusesCreator Instance => _instance;
-
-        public static event Action<Stylus> OnCreatedStylus;
+        [SerializeField] private GameObject stylusGoTemplate;
+        [SerializeField, Header("Default: Stylus\nYou can add your tags to the list.")] private List<string> _requiredTags = new() { "Stylus" };
         
-        private static Stylus[] _cachedStyluses = new Stylus[0];
-
-        public static Stylus[] Styluses {
-            get {
-                return _cachedStyluses;
-            }
-        }
-
+        public static StylusesCreator Instance => _instance;
+        public static event Action<Stylus> OnCreatedStylus;
+        public IReadOnlyList<Stylus> Styluses => _styluses;
+        
         private Antilatency.HardwareExtensionInterface.ILibrary _hardwareExtensionLibrary;
         private Antilatency.HardwareExtensionInterface.ICotaskConstructor _hardwareExtensionCotaskConstructor;
 
@@ -36,12 +31,10 @@ namespace Antilatency.DisplayStylus.SDK {
 
         private static StylusesCreator _instance;
         private static int _counterStyluses = -1;
-
-        [SerializeField] private GameObject stylusGoTemplate;
-        [SerializeField, Header("Default: Stylus\nYou can add your tags to the list.")] private List<string> _requiredTags = new List<string>() { "Stylus" };
+        
         private const string _hardwareStylusName = "AntilatencyStylusAlpha";
         private uint _lastCheckedUpdateId;
-        private Dictionary<int, Stylus> _createdStyluses = new Dictionary<int, Stylus>();
+        private List<Stylus> _styluses = new(2);
 
 #if UNITY_EDITOR
 
@@ -66,7 +59,7 @@ namespace Antilatency.DisplayStylus.SDK {
                 };
 
                 foreach (var rootFolder in rootFolderVariants){
-                    stylusGoTemplate = AssetDatabase.LoadAssetAtPath<GameObject>($"{rootFolder}/com.Antilatency.DisplayStylus.Unity.SDK/StylusTemplate.prefab");
+                    stylusGoTemplate = AssetDatabase.LoadAssetAtPath<GameObject>($"{rootFolder}/com.antilatency.displaystylus.unity.sdk/StylusTemplate.prefab");
                     if (stylusGoTemplate != null){
                         break;
                     }
@@ -77,7 +70,6 @@ namespace Antilatency.DisplayStylus.SDK {
                 }
             }
         }
-
 #endif
 
         protected override void Create() {
@@ -116,31 +108,43 @@ namespace Antilatency.DisplayStylus.SDK {
 
             var deviceNetworkProvider = GetComponentInParent<Antilatency.SDK.DeviceNetwork>();
 
-            status = "Finding network provider";
+            status = "Finding Network Provider";
             if (deviceNetworkProvider == null) {
                 yield return status;
                 goto WaitForNetworks;
             }
 
             var network = deviceNetworkProvider.NativeNetwork;
-            IEnvironmentProvider environmentProvider = GetComponentInParent<IEnvironmentProvider>();
-
+            
             if (network.IsNull()) {
                 yield return status;
                 goto WaitForNetworks;
             }
+            
+            FindingDisplay:
+            if (Destroying) { yield break; }
+            status = "Finding Display";
+            
+            Display display = GetComponentInParent<Display>();
 
-            status = "Finding environment";
-
-            var environment = environmentProvider.GetEnvironment();
-            if (environmentProvider == null || environment.IsNull()) {
+            if (display == null){
                 yield return status;
-                goto WaitForNetworks;
+                goto FindingDisplay;
+            }
+            
+            WaitingEnvironment:
+            if (Destroying) { yield break; }
+            status = "Waiting Environment";
+
+            var environment = display.GetEnvironment();
+            if (environment.IsNull()) {
+                yield return status;
+                goto WaitingEnvironment;
             }
 
-            status = "";
+            status = null;
             
-            WaitForFindStyluses:
+            Working:
             if(Destroying) { yield break;}
             var isCaught = false;
 
@@ -148,7 +152,7 @@ namespace Antilatency.DisplayStylus.SDK {
             if (_lastCheckedUpdateId != updateId) {
                 _lastCheckedUpdateId = updateId;
 
-                if (environmentProvider.GetEnvironment().IsNull()) {
+                if (display.GetEnvironment().IsNull()) {
                     yield return status;
                     goto WaitForNetworks;
                 }
@@ -188,14 +192,14 @@ namespace Antilatency.DisplayStylus.SDK {
 
                 if (extensionNode == NodeHandle.Null) {
                     yield return status;
-                    goto WaitForFindStyluses;
+                    goto Working;
                 }
 
                 NodeHandle altNode = allAltTrackingNodes.FirstOrDefault(n => network.nodeGetParent(n) == extensionNode);
 
                 if (altNode == NodeHandle.Null) {
                     yield return status;
-                    goto WaitForFindStyluses;
+                    goto Working;
                 }
 
                 ITrackingCotask trackingCotask = null;
@@ -220,11 +224,11 @@ namespace Antilatency.DisplayStylus.SDK {
 
                 if (isCaught) {
                     yield return status;
-                    goto WaitForFindStyluses;
+                    goto Working;
                 }
 
                 try {
-                    trackingCotask = _altCotaskConstructor.startTask(network, altNode, environmentProvider.GetEnvironment());
+                    trackingCotask = _altCotaskConstructor.startTask(network, altNode, display.GetEnvironment());
 
                     if (trackingCotask.IsNull()) {
                         throw new Exception();
@@ -244,20 +248,19 @@ namespace Antilatency.DisplayStylus.SDK {
                 
                 if (isCaught) {
                     yield return status;
-                    goto WaitForFindStyluses;
+                    goto Working;
                 }
 
-                _counterStyluses = _counterStyluses + 1;
+                _counterStyluses++;
                 int idStylus = _counterStyluses;
 
                 GameObject go = Instantiate(stylusGoTemplate, Vector3.zero, Quaternion.identity, transform);
                 Stylus stylus = go.GetComponent<Stylus>();
-                stylus.Initialize(idStylus, trackingCotask, extensionsCotask, inputPin);
+                stylus.Initialize(idStylus,display, trackingCotask, extensionsCotask, inputPin);
                 status = string.Empty;
                 stylus.OnDestroying += OnDestroyingStylus;
                 OnCreatedStylus?.Invoke(stylus);
-                _createdStyluses[idStylus] = stylus;
-                UpdateCachedStyluses();
+                _styluses.Add(stylus);
 
                 if (Application.isEditor || Debug.isDebugBuild) {
                     Debug.Log($"StylusCreator: Stylus created successfully -> {idStylus}");
@@ -267,7 +270,7 @@ namespace Antilatency.DisplayStylus.SDK {
 
             if (!Destroying) {
                 yield return status;
-                goto WaitForFindStyluses;
+                goto Working;
             }
         }
 
@@ -277,27 +280,7 @@ namespace Antilatency.DisplayStylus.SDK {
             }
 
             stylus.OnDestroying -= OnDestroyingStylus;
-            _createdStyluses.Remove(stylus.Id);
-            UpdateCachedStyluses();
-        }
-
-        private void UpdateCachedStyluses() {
-            int countStyluses = _createdStyluses.Count;
-            _cachedStyluses = new Stylus[countStyluses];
-
-            int index = 0;
-            foreach (var kvp in _createdStyluses) {
-                if (kvp.Value == null) {
-                    if (Application.isEditor || Debug.isDebugBuild) {
-                        Debug.LogError("Stylus value in _createdStyluses is null!");
-                    }
-
-                    continue;
-                }
-
-                _cachedStyluses[index] = kvp.Value;
-                index++;
-            }
+            _styluses.Remove(stylus);
         }
     }
 }

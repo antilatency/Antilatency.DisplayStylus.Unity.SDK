@@ -21,78 +21,67 @@ namespace Antilatency.DisplayStylus.SDK
         public event Action<Pose, Vector3,Vector3> OnUpdatedPose;
         public event Action<Stylus> OnDestroying;
         public int Id => _id;
+        
+        /// <summary>
+        /// In World Space.
+        /// </summary>
         public Pose ExtrapolatedPose => _extrapolatedPose;
+        /// <summary>
+        /// In World Space.
+        /// </summary>
         public Vector3 ExtrapolatedVelocity => _extrapolatedVelocity;
+        /// <summary>
+        /// In World Space.
+        /// </summary>
         public Vector3 ExtrapolatedAngularVelocity => _extrapolatedAngularVelocity;
-       
+        public float ExtrapolationTime = 0.042f;
+        
         protected ITrackingCotask _trackingCotask;
         protected ICotask _extensionCotask;
         protected IInputPin _inputPin;
+        
         private int _id;
+        private Display _display;
         private Pose _extrapolatedPose;
         private Vector3 _extrapolatedVelocity;
         private Vector3 _extrapolatedAngularVelocity;
 
-        public float ExtrapolationTime
-        {
-            get
-            {
-                return 0.042f;
-            }
-        }
-
-        internal void Initialize(int id,ITrackingCotask trackingCotask, ICotask extensionsCotask,
-            IInputPin inputPin)
-        {
+        internal void Initialize(int id, Display display, ITrackingCotask trackingCotask, ICotask extensionsCotask,
+            IInputPin inputPin){
+            _display = display;
             _id = id;
             _trackingCotask = trackingCotask;
             _extensionCotask = extensionsCotask;
             _inputPin = inputPin;
         }
 
-        protected override IEnumerable StateMachine()
-        {
-            if (!Destroying)
-            {
-                Subscribe();
+        protected override IEnumerable StateMachine(){
+            if (!Destroying){
+                Application.onBeforeRender += OnBeforeRenderer;
             }
-            
+
             string status = "Waiting cotasks.";
 
             WaitCotasks:
             if (Destroying) yield break;
 
-            if (_trackingCotask.IsNull() || _extensionCotask.IsNull() || _inputPin.IsNull())
-            {
+            if (_trackingCotask.IsNull() || _extensionCotask.IsNull() || _inputPin.IsNull()){
                 yield return status;
                 goto WaitCotasks;
             }
 
             status = string.Empty;
-            while (!_inputPin.IsNull() && !_trackingCotask.IsNull() && !_extensionCotask.IsNull() && !_trackingCotask.isTaskFinished() &&
-                   !_extensionCotask.isTaskFinished())
-            {
+            while (!_inputPin.IsNull() && !_trackingCotask.IsNull() && !_extensionCotask.IsNull() &&
+                   !_trackingCotask.isTaskFinished() &&
+                   !_extensionCotask.isTaskFinished()){
+                
+                if (Destroying) yield break;
+                
                 OnUpdateButtonPhase?.Invoke(this, _inputPin.getState() == PinState.Low);
-                if (Destroying)
-                {
-                    Debug.LogWarning("Stylus has been destroyed! Will call dispose all cotasks and pin.");
-                    yield break;
-                }
-                else yield return status;
+                yield return status;
             }
 
-            UnSubscribeAndDisposeAll();
-            DestroyGameObject();
-        }
-        
-        private void OnBeforeRendererLeft()
-        {
-            UpdateStylusPose(ExtrapolationTime);
-        }
-
-        private void OnBeforeRendererRight()
-        { 
-            UpdateStylusPose(ExtrapolationTime);
+            Destroy(gameObject);
         }
 
         [BeforeRenderOrder(-29999)]
@@ -100,8 +89,7 @@ namespace Antilatency.DisplayStylus.SDK
         {
             UpdateStylusPose(ExtrapolationTime);
         }
-
-
+        
         private void UpdateStylusPose(float time)
         {
             if (_trackingCotask.IsNull() || _trackingCotask.isTaskFinished())
@@ -111,51 +99,33 @@ namespace Antilatency.DisplayStylus.SDK
             
             State extrapolatedState = _trackingCotask.getExtrapolatedState(Pose.identity, time);
             Pose extrapolatedPose = extrapolatedState.pose;
-
-            transform.localPosition = extrapolatedPose.position;
-            transform.localRotation = extrapolatedPose.rotation;
-
-            Transform displayHandleT = StylusesCreator.Instance.transform;//DisplayHandle.Instance.transform;
-            Vector3 worldVelocity = displayHandleT.TransformVector(extrapolatedState.velocity);
+            
+            var inverseEnvironmentRotation = Quaternion.Inverse(_display.EnvironmentRotation);
+            var toInverseEnvironmentMatrix = Math.QuaternionToMatrix(inverseEnvironmentRotation);
+            
+            transform.localPosition = toInverseEnvironmentMatrix.MultiplyPoint(extrapolatedPose.position);
+            transform.localRotation = extrapolatedPose.rotation * toInverseEnvironmentMatrix.rotation;
+            
+            Transform displayHandleT = StylusesCreator.Instance.transform;
+            Vector3 worldVelocity = displayHandleT.TransformVector(toInverseEnvironmentMatrix.MultiplyVector(extrapolatedState.velocity));
             Vector3 angularVelocity = displayHandleT.TransformDirection(extrapolatedState.localAngularVelocity);
 
-            Pose worldPose = new Pose(transform.position, transform.rotation);
-
-            _extrapolatedPose = worldPose;
+            _extrapolatedPose = new Pose(transform.position, transform.rotation);
             _extrapolatedVelocity = worldVelocity;
             _extrapolatedAngularVelocity = angularVelocity;
 
             OnUpdatedPose?.Invoke(ExtrapolatedPose, ExtrapolatedVelocity, ExtrapolatedAngularVelocity);
         }
 
-        private void Subscribe()
-        {
-            Application.onBeforeRender += OnBeforeRenderer;
-        }
-
-        private void UnSubscribeAll()
-        {
-            Application.onBeforeRender -= OnBeforeRenderer;
-        }
-
-        private void UnSubscribeAndDisposeAll()
-        {
-            UnSubscribeAll();
-            Antilatency.Utils.SafeDispose(ref _inputPin);
-            Antilatency.Utils.SafeDispose(ref _extensionCotask);
-            Antilatency.Utils.SafeDispose(ref _trackingCotask);
-        }
-
-        private void DestroyGameObject()
-        {
-            Destroy(gameObject);
-        }
-
         protected override void Destroy()
         {
             base.Destroy();
 
-            UnSubscribeAndDisposeAll();
+            Application.onBeforeRender -= OnBeforeRenderer;
+            Antilatency.Utils.SafeDispose(ref _inputPin);
+            Antilatency.Utils.SafeDispose(ref _extensionCotask);
+            Antilatency.Utils.SafeDispose(ref _trackingCotask);
+            
             OnUpdateButtonPhase?.Invoke(this,false);
             OnDestroying?.Invoke(this);
         }

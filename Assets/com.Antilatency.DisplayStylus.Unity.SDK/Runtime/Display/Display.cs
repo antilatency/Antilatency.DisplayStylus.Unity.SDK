@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Linq;
 using Antilatency.Alt.Environment;
@@ -15,7 +14,18 @@ namespace Antilatency.DisplayStylus.SDK{
         public Vector3 ScreenX = new(0.1505f, 0, 0);
         public Vector3 ScreenY = new(0f, 0.095f, 0);
         
-        public IEnvironment Environment => GetEnvironment();
+        public Quaternion EnvironmentRotation{
+            get{
+                var rotationEnvironment = _environment.QueryInterface<IOrientationAwareEnvironment>();
+
+                if (rotationEnvironment != null){
+                    return rotationEnvironment.getRotation();
+                }
+
+                return Quaternion.identity;
+            }
+        }
+        
         private IEnvironment _environment;
         private Antilatency.PhysicalConfigurableEnvironment.ILibrary _physicalConfigurableEnvironmentLibrary;
         private Antilatency.Alt.Environment.Selector.ILibrary _environmentSelectorLibrary;
@@ -92,10 +102,6 @@ namespace Antilatency.DisplayStylus.SDK{
             Utils.SafeDispose(ref _environmentSelectorLibrary);
             Utils.SafeDispose(ref _physicalConfigurableEnvironmentLibrary);
         }
-
-        public IEnvironment GetEnvironment(){
-            return _environment;
-        }
         
         public Vector2 GetHalfScreenSize() {
             return new Vector2(ScreenX.magnitude, ScreenY.magnitude);
@@ -107,6 +113,10 @@ namespace Antilatency.DisplayStylus.SDK{
             Vector4 w = ScreenPosition;
             w.w = 1;
             return new Matrix4x4(x, y, Vector3.Cross(x, y), w);
+        }
+
+        public IEnvironment GetEnvironment(){
+            return _environment;
         }
     }
 }
