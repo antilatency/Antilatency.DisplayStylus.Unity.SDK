@@ -71,15 +71,12 @@ namespace Antilatency.DisplayStylus.SDK {
             _display.transform.localScale = scale;
             position.Scale(scale);
             _display.transform.localPosition = position;
+
+            var displayRotation = _display.SyncWithPhysicalDisplayRotation
+                ? _display.EnvironmentRotation
+                : Quaternion.identity;
             
-            var environment = _display.GetEnvironment();
-            if (_display.SyncWithPhysicalDisplayRotation && !environment.IsNull()){
-                _display.transform.localRotation =
-                    environment.QueryInterface<IOrientationAwareEnvironment>().getRotation();
-            }
-            else{
-                _display.transform.localRotation = Quaternion.identity;
-            }
+            _display.transform.localRotation = displayRotation;
         }
 
         private bool FindDisplay(){
