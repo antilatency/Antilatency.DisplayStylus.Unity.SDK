@@ -17,8 +17,6 @@ https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git?path=/Ass
 ## Adding DisplayStylus to the Scene
 In the top Unity menu, select **Display Stylus -> Create In Scene**.
 
-It's **important to know** this when testing in the Unity Editor. The position of the styluses is updated in Application.onBeforeRender. Make sure that the **Game Viewport is open and active**, as Unity will not call Application.onBeforeRender otherwise.
-
 ## Display
 
 The Display component is responsible for connecting to the controller that manages the markers.
@@ -62,6 +60,8 @@ Styluses Creator finds stylus nodes and creates Stylus GameObjects based on the 
 An unlimited number of styluses can be connected. A custom stylus can be assembled, for example, using a Hardware Extension Module and a socket with a tracker. The stylus must have a non-empty Tag property, which can be set in AntilatencyService. In the "Styluses Creator" component, the same Tag must be added to Required Tags for the stylus to be found by the application.
 
 ## Stylus
+
+It's **important to know** this when testing in the Unity Editor. The position of the styluses is updated in Application.onBeforeRender. Make sure that the **Game Viewport is open and active**, as Unity will not call Application.onBeforeRender otherwise.
 
 - `event Action<Stylus, bool> OnUpdatedButtonPhase`: Called with each new state update, even if the state stays the same. If the stylus is disconnected while the button is pressed, it signals the released state.
 - `public event Action<Pose, Vector3, Vector3> OnUpdatedPose`: Called after the stylus pose is updated, with the following parameters:
