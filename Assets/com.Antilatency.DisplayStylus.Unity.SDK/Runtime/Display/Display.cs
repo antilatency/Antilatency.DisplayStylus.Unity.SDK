@@ -19,7 +19,7 @@ namespace Antilatency.DisplayStylus.SDK{
                 var rotationEnvironment = _environment?.QueryInterface<IOrientationAwareEnvironment>();
 
                 if (rotationEnvironment != null){
-                    return rotationEnvironment.getRotation();
+                    return rotationEnvironment.getRotation().normalized;
                 }
 
                 return Quaternion.identity;
