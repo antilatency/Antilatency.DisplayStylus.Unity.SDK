@@ -26,7 +26,7 @@ namespace Antilatency.DisplayStylus.SDK{
                         ((double)q.x * q.x + (double)q.y * q.y + (double)q.z * q.z + (double)q.w * q.w) - 1.0f) < 1e-6;
 
                     if (!isNormalized) {
-                        Debug.LogError("Quaternion is not normalized");
+                        Debug.LogWarning($"Quaternion is not normalized. x:{q.x} y:{q.y} z:{q.z} w:{q.w}");
                     }
 
                     return !isNormalized ? Quaternion.identity : q;
