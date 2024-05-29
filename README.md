@@ -17,6 +17,8 @@ https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git?path=/Ass
 ## Adding DisplayStylus to the Scene
 In the top Unity menu, select **Display Stylus -> Create In Scene**.
 
+It's **important to know** this when testing in the Unity Editor. The position of the styluses is updated in Application.onBeforeRender. Make sure that the **Game Viewport is open and active**, as Unity will not call Application.onBeforeRender otherwise.
+
 ## Display
 
 The Display component is responsible for connecting to the controller that manages the markers.
