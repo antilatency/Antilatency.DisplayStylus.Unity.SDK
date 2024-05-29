@@ -18,8 +18,18 @@ namespace Antilatency.DisplayStylus.SDK{
             get{
                 var rotationEnvironment = _environment?.QueryInterface<IOrientationAwareEnvironment>();
 
-                if (rotationEnvironment != null){
-                    return rotationEnvironment.getRotation().normalized;
+                if (rotationEnvironment != null) {
+                    var q = rotationEnvironment.getRotation();
+                    
+                    // TODO: remove isNormalized check after library update
+                    var isNormalized = System.Math.Abs(
+                        ((double)q.x * q.x + (double)q.y * q.y + (double)q.z * q.z + (double)q.w * q.w) - 1.0f) < 1e-6;
+
+                    if (!isNormalized) {
+                        Debug.LogError("Quaternion is not normalized");
+                    }
+
+                    return !isNormalized ? Quaternion.identity : q;
                 }
 
                 return Quaternion.identity;
@@ -29,7 +39,7 @@ namespace Antilatency.DisplayStylus.SDK{
         private IEnvironment _environment;
         private Antilatency.PhysicalConfigurableEnvironment.ILibrary _physicalConfigurableEnvironmentLibrary;
         private Antilatency.Alt.Environment.Selector.ILibrary _environmentSelectorLibrary;
-        private Antilatency.PhysicalConfigurableEnvironment.ICotaskConstructor _cotaskContructor;
+        private Antilatency.PhysicalConfigurableEnvironment.ICotaskConstructor _cotaskConstructor;
         private Antilatency.PhysicalConfigurableEnvironment.ICotask _cotask;
 
         protected override IEnumerable StateMachine(){
@@ -37,7 +47,7 @@ namespace Antilatency.DisplayStylus.SDK{
             string status;
 
             _physicalConfigurableEnvironmentLibrary = PhysicalConfigurableEnvironment.Library.load();
-            _cotaskContructor = _physicalConfigurableEnvironmentLibrary.createCotaskConstructor();
+            _cotaskConstructor = _physicalConfigurableEnvironmentLibrary.createCotaskConstructor();
             _environmentSelectorLibrary = Alt.Environment.Selector.Library.load();
 
             WaitingForNetwork:
@@ -54,7 +64,7 @@ namespace Antilatency.DisplayStylus.SDK{
             ConnectingToDevice:
             if (Destroying) yield break;
             status = "Connecting To Device";
-            NodeHandle deviceNode = _cotaskContructor.findSupportedNodes(network).FirstOrDefault();
+            NodeHandle deviceNode = _cotaskConstructor.findSupportedNodes(network).FirstOrDefault();
 
             if (deviceNode == NodeHandle.Null){
                 var lastUpdateId = network.getUpdateId();
@@ -66,7 +76,7 @@ namespace Antilatency.DisplayStylus.SDK{
                 goto ConnectingToDevice;
             }
             
-            using (_cotask = _cotaskContructor.startTask(network, deviceNode)){
+            using (_cotask = _cotaskConstructor.startTask(network, deviceNode)){
                 while (!_cotask.IsNull() && !_cotask.isTaskFinished()){
 
                     if (Destroying) yield break;
@@ -98,7 +108,7 @@ namespace Antilatency.DisplayStylus.SDK{
             base.Destroy();
 
             Utils.SafeDispose(ref _cotask);
-            Utils.SafeDispose(ref _cotaskContructor);
+            Utils.SafeDispose(ref _cotaskConstructor);
             Utils.SafeDispose(ref _environmentSelectorLibrary);
             Utils.SafeDispose(ref _physicalConfigurableEnvironmentLibrary);
         }

@@ -36,7 +36,7 @@ namespace Antilatency.DisplayStylus.SDK {
             if (Instance != null){
                 if (Application.isEditor || Debug.isDebugBuild){
                     Debug.LogError(
-                        "Detected dublicate display handle. Will ignoring new instance display handle! Use one active display handle on scene!");
+                        "Detected duplicate display handle. Will ignoring new instance display handle! Use one active display handle on scene!");
                 }
 
                 return;
