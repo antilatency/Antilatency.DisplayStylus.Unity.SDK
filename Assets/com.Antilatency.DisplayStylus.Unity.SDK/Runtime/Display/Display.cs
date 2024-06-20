@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Linq;
 using Antilatency.Alt.Environment;
@@ -41,7 +42,9 @@ namespace Antilatency.DisplayStylus.SDK{
         private Antilatency.Alt.Environment.Selector.ILibrary _environmentSelectorLibrary;
         private Antilatency.PhysicalConfigurableEnvironment.ICotaskConstructor _cotaskConstructor;
         private Antilatency.PhysicalConfigurableEnvironment.ICotask _cotask;
-
+        
+        private const string TheEnvironmentWasNotCreatedMessage = "The environment was not created";
+        
         protected override IEnumerable StateMachine(){
 
             string status;
@@ -75,29 +78,34 @@ namespace Antilatency.DisplayStylus.SDK{
 
                 goto ConnectingToDevice;
             }
-            
+                
             using (_cotask = _cotaskConstructor.startTask(network, deviceNode)){
-                while (!_cotask.IsNull() && !_cotask.isTaskFinished()){
 
-                    if (Destroying) yield break;
+                Func<bool> isHealthyCotask = () => !_cotask.IsNull() && !_cotask.isTaskFinished();
+            
+                if (isHealthyCotask.Invoke()){
                     
-                    if (_environment == null){
-                        try{
-                            ScreenPosition = _cotask.getScreenPosition();
-                            ScreenX = _cotask.getScreenX();
-                            ScreenY = _cotask.getScreenY();
-                                
-                            var configId = _cotask.getConfigId();
-                            string environmentCode = _cotask.getEnvironment(configId);
-                            _environment = _environmentSelectorLibrary.createEnvironment(environmentCode);
-                        }
-                        catch{
-                            Debug.LogError("Error while reading display properties.");
-                            throw;
-                        }
-                    }
+                    //Reading properties and creating an environment
+                    try{
+                        ScreenPosition = _cotask.getScreenPosition();
+                        ScreenX = _cotask.getScreenX();
+                        ScreenY = _cotask.getScreenY();
 
-                    yield return null;
+                        var configId = _cotask.getConfigId();
+                        string environmentCode = _cotask.getEnvironment(configId);
+                        _environment = _environmentSelectorLibrary.createEnvironment(environmentCode);
+                    }
+                    catch (Exception e){
+                        _environment = null;
+                        Debug.LogException(e);
+                    }
+                }
+
+                status = _environment != null ? null : TheEnvironmentWasNotCreatedMessage;
+                
+                while (isHealthyCotask.Invoke()){
+                    if (Destroying) yield break;
+                    yield return status;
                 }
             }
 
