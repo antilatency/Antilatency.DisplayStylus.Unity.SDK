@@ -5,7 +5,7 @@
 ### Add Antilatency SDK
 Add the following URL to your Package Manager:
 ```
-https://github.com/AntilatencySDK/Release_4.3.0.git#subset-8c17f2d9960a027336efd1b4c6c32f3cf2e8cf9e
+https://github.com/AntilatencySDK/Release_4.4.0.git#subset-41ab5faa283aabb0d73770a976e6cb8b9339421f
 ```
 
 ### Add Antilatency.DisplayStylus.Unity.SDK

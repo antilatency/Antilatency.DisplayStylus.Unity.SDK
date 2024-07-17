@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.antilatency.sdk": "https://github.com/AntilatencySDK/Release_4.3.0.git#subset-8c17f2d9960a027336efd1b4c6c32f3cf2e8cf9e",
+    "com.antilatency.sdk": "https://github.com/AntilatencySDK/Release_4.4.0.git#subset-41ab5faa283aabb0d73770a976e6cb8b9339421f",
     "com.unity.feature.development": "1.0.1",
     "com.unity.ugui": "1.0.0",
     "com.unity.visualscripting": "1.9.0",
