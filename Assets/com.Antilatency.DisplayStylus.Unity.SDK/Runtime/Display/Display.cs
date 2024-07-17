@@ -9,7 +9,7 @@ namespace Antilatency.DisplayStylus.SDK{
     [RequireComponent(typeof(Antilatency.SDK.DeviceNetwork))]
     public class Display : LifeTimeControllerStateMachine, IEnvironmentProvider{
 
-        public bool SyncWithPhysicalDisplayRotation = true;
+        public bool SyncWithPhysicalDisplayRotation = false;
         
         public Vector3 ScreenPosition = Vector3.zero;
         public Vector3 ScreenX = new(0.1505f, 0, 0);
