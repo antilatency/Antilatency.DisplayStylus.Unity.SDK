@@ -63,6 +63,7 @@ An unlimited number of styluses can be connected. A custom stylus can be assembl
 
 It's **important to know** this when testing in the Unity Editor. The position of the styluses is updated in Application.onBeforeRender. Make sure that the **Game Viewport is open and active**, as Unity will not call Application.onBeforeRender otherwise.
 
+- `public float ExtrapolationTime`: The time duration (in seconds) for which the position and orientation of the stylus will be extrapolated based on previous data. This is necessary to ensure that, at the moment the image is displayed on the screen, the virtual stylus predicts its future position, aligning with the actual position of the real stylus. However, the longer the prediction time, the higher the potential error, which may arise due to deviations in the real stylus’s movement trajectory. Since the exact display latency depends on the device and operating environment, this parameter is manually adjusted by the user. The value can also be modified in Play Mode.
 - `event Action<Stylus, bool> OnUpdatedButtonPhase`: Called with each new state update, even if the state stays the same. If the stylus is disconnected while the button is pressed, it signals the released state.
 - `public event Action<Pose, Vector3, Vector3> OnUpdatedPose`: Called after the stylus pose is updated, with the following parameters:
   - **Pose**: The position and rotation of the stylus in world space.
