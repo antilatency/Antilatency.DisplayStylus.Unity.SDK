@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Antilatency.DisplayStylus.SDK.Samples.Cubes {
@@ -7,6 +8,7 @@ namespace Antilatency.DisplayStylus.SDK.Samples.Cubes {
     public class Cube : MonoBehaviour, IStylusPointerHandler, IStylusPointerGrabbable {
 
         [SerializeField] private Collider colliderForGrab;
+        [SerializeField] private Outline outline;
 
         public Collider ColliderForGrab => colliderForGrab;
         public bool IsAvaiableForGrab => _isGrabbing == false;
@@ -20,9 +22,12 @@ namespace Antilatency.DisplayStylus.SDK.Samples.Cubes {
         private Vector3 _lastGrabAngularVelocity;
         private bool _isGrabbing;
 
+
         private void Awake() {
             _startPos = transform.position;
             _startRot = transform.rotation;
+
+            UpdateOutline();
         }
 
         private void OnEnable() {
@@ -76,7 +81,14 @@ namespace Antilatency.DisplayStylus.SDK.Samples.Cubes {
             _pointers.Remove(pointer);
         }
 
+        private void UpdateOutline() {
+            outline.OutlineWidth = _pointers.Any() ? 10 : 0;
+        }
+
         private void Update() {
+
+            UpdateOutline();
+
             if (Input.GetKeyDown(KeyCode.R)) {
                 ResetPoseCube();
             }
