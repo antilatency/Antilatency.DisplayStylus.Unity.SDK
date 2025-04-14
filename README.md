@@ -1,4 +1,5 @@
 # Antilatency.Styluses.Unity.SDK
+Works with Unity 2021.3.5f1 and later.
 
 ## Setup
 
@@ -11,7 +12,7 @@ https://github.com/AntilatencySDK/Release_4.4.0.git#subset-41ab5faa283aabb0d7377
 ### Add Antilatency.DisplayStylus.Unity.SDK
 Add the following URL to your Package Manager:
 ```
-https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git?path=/Assets/com.Antilatency.DisplayStylus.Unity.SDK#1.2.0
+https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git#1.2.2
 ```
 
 ## Adding DisplayStylus to the Scene
@@ -47,8 +48,9 @@ The Display Handle is the parent object for the Display. It can be rotated, move
 [Device Network](https://developers.antilatency.com/Terms/Antilatency_Device_Network_en.html) is the communication link between the application and connected Antilatency devices. It helps to monitor changes in connected devices and provides access to the [nodes](https://developers.antilatency.com/Terms/Node_en.html) of the [device tree](https://developers.antilatency.com/Terms/Antilatency_Device_Network_en.html#Device_tree).
 
 ## Styluses Creator
-
-Styluses Creator finds stylus nodes and creates Stylus GameObjects based on the number of connected devices.
+**`StylusCreator`** scans for connected stylus nodes and creates corresponding `Stylus` GameObjects.  
+You can access the created styluses via:  
+**`StylusCreator -> Styluses`**
 
 ### Parameters
 
