@@ -1,0 +1,16 @@
+{
+    "name": "Antilatency.DisplayStylus.SDK.Samples.Cubes",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d63a24c115510a2409c1850efeeeeb50"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

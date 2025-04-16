@@ -1,9 +1,10 @@
 using UnityEngine;
+#nullable enable
 
 namespace Antilatency.DisplayStylus.SDK.Samples.Cubes {
     public abstract class BaseStylusGrabPointer : BaseStylusPointer {
         private IStylusPointerGrabbable? _grabbingObject;
-        protected IStylusPointerGrabbable GrabbingObject => _grabbingObject;
+        protected IStylusPointerGrabbable? GrabbingObject => _grabbingObject;
 
         protected override void OnDisable() {
             base.OnDisable();
