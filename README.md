@@ -15,6 +15,9 @@ Add the following URL to your Package Manager:
 https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git#1.2.1
 ```
 
+### Add Samples  
+You can add them via **Package → Samples** to see how you can interact with the stylus.
+
 ## Adding DisplayStylus to the Scene
 In the top Unity menu, select **Display Stylus -> Create In Scene**.
 
