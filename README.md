@@ -11,15 +11,19 @@ The package supports Unity 2021.3.5f1 and later and depends on Antilatency SDK 4
 
 ### Add Antilatency SDK
 
-Install the Antilatency SDK 4.6.0 package. The following subset includes the modules used by this package, including `AltEnvironmentSides`:
+In Unity Package Manager, select **Add package from git URL** and paste
+[https://github.com/AntilatencySDK/Release_4.6.0.git#subset-22a756f0fb8b2c7a4dbd47324fdc939eb60f8372](https://github.com/AntilatencySDK/Release_4.6.0.git#subset-22a756f0fb8b2c7a4dbd47324fdc939eb60f8372).
 
-```text
-https://github.com/AntilatencySDK/Release_4.6.0.git#subset-22a756f0fb8b2c7a4dbd47324fdc939eb60f8372
-```
+This Antilatency SDK 4.6.0 subset includes every module required by the package,
+including `AltEnvironmentSides`.
 
 ### Add this package
 
-In Unity Package Manager, choose **Add package from disk** and select this package's `package.json`.
+In Unity Package Manager, select **Add package from git URL** and paste
+[https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git#2.0.0](https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git#2.0.0).
+
+The version tag keeps the project on a stable package release. Use **Add package
+from disk** only when developing a local checkout of this repository.
 
 ### Add samples
 
@@ -40,41 +44,17 @@ Existing scenes created with package 1.2.x remain compatible. If a scene contain
 
 ## Using Proxy mode
 
-Proxy mode moves ADN ownership and device cotasks into the standalone process. Unity receives display and stylus frames over WebSocket.
-
-```text
-Antilatency devices -> Proxy process -> binary WebSocket -> one or more Unity readers
-                                      <- leased HTTP commands <- one lease holder
-```
-
-Multiple clients can read at the same time. Write commands use one exclusive, short-lived lease. Reading is never blocked by a writer.
-
-### Requirements and ownership
-
-- Run the proxy on Windows x64.
-- Do not run another ADN owner, including Unity in `LocalAdn` mode, while the proxy owns ADN.
-- Keep TCP port `48192` available. The local endpoint is always `http://127.0.0.1:48192`.
-- Proxy mode supports desktop Unity players and the Unity Editor. WebGL cannot use the required `ClientWebSocket` API.
+The [Antilatency Display Stylus Proxy repository](https://github.com/antilatency/Antilatency.DisplayStylus.Proxy)
+is the canonical source for server releases, startup instructions, endpoints,
+lease behavior, and the binary protocol. This section documents only the Unity
+client integration.
 
 ### 1. Start the proxy process
 
-Download `Antilatency.DisplayStylus.Proxy-v<version>-win-x64.zip` from the
-Antilatency Display Stylus Proxy GitHub Releases page, extract the complete
-archive, and run the following command from its directory:
-
-```powershell
-.\run-proxy.cmd
-```
-
-The proxy always uses the real Antilatency Device Network. `/health` reports a fault if ADN cannot be opened.
-
-Confirm that the server is healthy and is using the expected driver:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:48192/health
-```
-
-The response should have `status` set to `ok` and `driver` set to `adn-4.6.0`. If a proxy is already running on the fixed port, a second launch reports the existing instance and exits normally.
+Follow the proxy repository's [Quick start](https://github.com/antilatency/Antilatency.DisplayStylus.Proxy#quick-start).
+Do not run Unity in `LocalAdn` mode while the proxy owns ADN. Proxy mode supports
+desktop Unity players and the Unity Editor; WebGL does not provide the required
+`ClientWebSocket` API.
 
 ### 2. Configure the Unity scene
 
@@ -144,7 +124,11 @@ public sealed class ProxyFrameReader : MonoBehaviour {
 }
 ```
 
-`FrameUpdated` is raised on the Unity main thread. High-frequency snapshots use a bounded binary protocol; vectors, quaternions, poses, and velocities are not encoded as JSON. When a reader is slow, stale snapshots are replaced by the newest one instead of building an unbounded backlog. Do not poll an HTTP endpoint every Unity frame.
+`FrameUpdated` is raised on the Unity main thread. High-frequency snapshots use
+the proxy's [binary protocol](https://github.com/antilatency/Antilatency.DisplayStylus.Proxy/blob/main/docs/BINARY_PROTOCOL.md);
+vectors, quaternions, poses, and velocities are not encoded as JSON. When a
+reader is slow, stale snapshots are replaced by the newest one instead of
+building an unbounded backlog. Do not poll an HTTP endpoint every Unity frame.
 
 Native interfaces such as `INetwork`, `ICotask`, and `IEnvironment` cannot cross the process boundary. Consequently, `Display.GetEnvironment()` and `DisplayStylusConnection.LocalEnvironment` return `null` in Proxy mode.
 
@@ -192,30 +176,34 @@ public sealed class ProxyConfigurationWriter : MonoBehaviour {
 }
 ```
 
-Only one lease can exist at a time:
+The writer exposes the proxy lease as Unity-friendly methods:
 
 - `AcquireAsync()` returns `true` and populates `LeaseId` and `LeaseExpiresAtUtc` when ownership is granted.
-- If another client owns the line, the server returns `423 Locked`; `AcquireAsync()` returns `false` and puts the explanation in `LastLeaseFailure`.
-- The default lease duration is 15 seconds and the maximum is 120 seconds.
+- If another client owns the line, `AcquireAsync()` returns `false` and puts the explanation in `LastLeaseFailure`.
 - For a longer edit session, call `RenewAsync()` before `LeaseExpiresAtUtc`. It returns `false` and clears the local lease if ownership was lost.
 - `ReleaseAsync()` frees the line and is safe when no lease is held.
-- Call `ReleaseAsync()` before `Dispose()`; a crashed client retains the lease only until its TTL expires.
+- Call `ReleaseAsync()` before `Dispose()`.
+
+See the proxy's [API documentation](https://github.com/antilatency/Antilatency.DisplayStylus.Proxy#api)
+for the canonical lease duration, ownership rules, and server responses.
 
 ### Supported write commands
 
-| Method | Effect | Restrictions |
-| --- | --- | --- |
-| `SetDisplayConfigAsync(configId)` | Selects an existing physical-display configuration. | The ID must be less than `LatestFrame.Display.ConfigCount`. This does not create or edit a calibration. |
-| `SetStringPropertyAsync(nodeId, key, value)` | Sets an ADN string property. | The target node must be idle. |
-| `DeletePropertyAsync(nodeId, key)` | Deletes an ADN property. | The target node must be idle. |
+| Method | Effect |
+| --- | --- |
+| `SetDisplayConfigAsync(configId)` | Selects an existing physical-display configuration. |
+| `SetStringPropertyAsync(nodeId, key, value)` | Sets an ADN string property. |
+| `DeletePropertyAsync(nodeId, key)` | Deletes an ADN property. |
 
-Changing the active display configuration is supported while the display cotask is running. The proxy selects the new configuration, recreates the tracking environment, and restarts its stylus cotasks. A short tracking interruption is therefore expected.
-
-ADN property tasks can start only on idle nodes. Display and stylus nodes managed by the proxy normally have active cotasks, so property writes to those nodes usually return `409 device_busy`. Configure persistent tags before starting the proxy, or use a node that is known to be idle. The Unity frame API exposes display and stylus telemetry rather than the complete ADN node tree; obtain maintenance node IDs with an ADN administration tool.
+Command validation and ADN ownership restrictions are maintained in the
+proxy's [API documentation](https://github.com/antilatency/Antilatency.DisplayStylus.Proxy#api).
 
 ### Handle write errors
 
-A successful command completes with no return value (`HTTP 204 No Content`). For an expected API failure, `DisplayStylusProxyWriter` throws `DisplayStylusProxyException` with:
+A successful command completes with no return value (`HTTP 204 No Content`).
+The proxy README documents the canonical [HTTP API and lease behavior](https://github.com/antilatency/Antilatency.DisplayStylus.Proxy#api).
+For an expected API failure, `DisplayStylusProxyWriter` throws
+`DisplayStylusProxyException` with:
 
 - `StatusCode`: the numeric HTTP response status;
 - `Code`: a stable machine-readable code;
@@ -232,16 +220,12 @@ catch (DisplayStylusProxyException exception) {
 }
 ```
 
-| HTTP status | Code | Meaning |
-| --- | --- | --- |
-| `400 Bad Request` | `invalid_command` | A property key or display configuration ID is invalid. |
-| `404 Not Found` | `node_not_found` | The requested ADN node does not exist. |
-| `409 Conflict` | `device_busy` | The node is running a cotask, or the physical display is unavailable. |
-| `409 Conflict` | `write_lease_required` | The lease is missing, expired, released, or no longer owned by this writer. |
-
-When `write_lease_required` is received, the writer clears its local lease and copies the server message to `LastLeaseFailure`. Calling a write method before acquiring a lease throws `InvalidOperationException` locally and sends no HTTP request. Invalid property keys throw `ArgumentException` locally. Connection failures and cancellations retain their standard .NET exception types.
-
-Lease and write messages use JSON because they are small and infrequent. Only the high-frequency telemetry path requires the binary serializer.
+When the server reports that ownership was lost, the writer clears its local
+lease and copies the server message to `LastLeaseFailure`. Calling a write method
+before acquiring a lease throws `InvalidOperationException` locally and sends no
+HTTP request. Invalid property keys throw `ArgumentException` locally.
+Connection failures and cancellations retain their standard .NET exception
+types.
 
 ### Switch modes at runtime
 
@@ -263,16 +247,12 @@ connection.Mode = DisplayStylusConnectionMode.LocalAdn;
 | Symptom | Check |
 | --- | --- |
 | `ConnectionStatus` remains `Connecting to proxy` | Confirm that the process is running, `/health` responds, the URL is correct, and port `48192` is not blocked. |
-| The proxy cannot open ADN | Stop other ADN owners, including another proxy or Unity in `LocalAdn` mode. |
 | `IsReady` is false although the socket is connected | Check that the physical display node is connected and that its cotask can start. |
 | Status says `waiting for proxy display task` | Stop Unity objects or tools that still own local ADN/PCE tasks. Keep **Manage Local Device Network Activation** enabled and restart Play Mode. |
 | Unity was open while upgrading the Antilatency SDK package | Restart the Unity Editor before connecting or disconnecting USB devices. Unity cannot unload the old native plugin during a hot package upgrade; keeping two SDK versions loaded in one Editor process can crash native device callbacks. |
-| No stylus is created | Check the proxy `HardwareNameContains` and `StylusTags` settings and the device `Tag` property. |
+| No stylus is created | Check the proxy configuration and the device `Tag` property. |
 | `AcquireAsync()` returns false | Another client owns the write lease. Read `LastLeaseFailure` or wait for the reported lease to expire. |
-| A property write returns `device_busy` | The target node has an active cotask and cannot run an ADN property task. |
 | `Proxy snapshot error` mentions a protocol version | Use matching versions of the proxy process and this Unity package. |
-
-The current server has no TLS or authentication and binds to loopback by default. Do not expose it to another machine or an untrusted network until transport security and client authentication are added.
 
 ## Components
 
@@ -325,9 +305,9 @@ Assign **Stylus Go Template** to a prefab containing a `Stylus` component. The i
 Multiple custom styluses can be assembled from a Hardware Extension Module, an
 input button, and a connected tracker. Give each extension node a non-empty
 `Tag` property. In `LocalAdn` mode, add that value to
-`DisplayStylusConnection.Stylus Tags`. In `Proxy` mode, add it to
-`Adn:StylusTags` in the proxy's `appsettings.json`. Hardware-name matching uses
-**Hardware Name Contains** locally or `Adn:HardwareNameContains` in the proxy.
+`DisplayStylusConnection.Stylus Tags`. For Proxy mode, use the proxy's
+[configuration reference](https://github.com/antilatency/Antilatency.DisplayStylus.Proxy#configuration).
+Hardware-name matching uses **Hardware Name Contains** locally.
 
 ### Stylus
 
