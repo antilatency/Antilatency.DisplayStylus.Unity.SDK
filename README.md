@@ -26,9 +26,6 @@ including `AltEnvironmentSides`.
 In Unity Package Manager, select **Add package from git URL** and paste
 [https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git#2.0.0](https://github.com/antilatency/Antilatency.DisplayStylus.Unity.SDK.git#2.0.0).
 
-Use **Add package from disk** only when developing a local checkout of this
-repository.
-
 ### Add samples
 
 Open the package in Unity Package Manager and import the **Cubes** sample for
