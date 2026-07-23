@@ -1,132 +1,102 @@
 using System;
 using System.Collections;
-using Antilatency.Alt.Tracking;
-using Antilatency.HardwareExtensionInterface;
-using Antilatency.HardwareExtensionInterface.Interop;
 using UnityEngine;
 
-namespace Antilatency.DisplayStylus.SDK
-{
-    public class Stylus : LifeTimeControllerStateMachine
-    {
-        /// <summary>
-        /// bool – If true, the button is pressed; otherwise, it is unpressed.
-        /// </summary>
-        public event Action<Stylus,bool> OnUpdateButtonPhase;
-        /// <summary>
-        /// Pose - Extrapolated world space pose.
-        /// Vector3 - Extrapolated world space velocity.
-        /// Vector3 - Extrapolated world space angular velocity.
-        /// </summary>
-        public event Action<Pose, Vector3,Vector3> OnUpdatedPose;
+namespace Antilatency.DisplayStylus.SDK {
+    public class Stylus : LifeTimeControllerStateMachine {
+        /// <summary>True while the stylus button is pressed.</summary>
+        public event Action<Stylus, bool> OnUpdateButtonPhase;
+
+        /// <summary>Extrapolated world-space pose, velocity, and angular velocity.</summary>
+        public event Action<Pose, Vector3, Vector3> OnUpdatedPose;
+
         public event Action<Stylus> OnDestroying;
+
         public int Id => _id;
-        
-        /// <summary>
-        /// In World Space.
-        /// </summary>
+        public string SourceId => _sourceId;
         public Pose ExtrapolatedPose => _extrapolatedPose;
-        /// <summary>
-        /// In World Space.
-        /// </summary>
         public Vector3 ExtrapolatedVelocity => _extrapolatedVelocity;
-        /// <summary>
-        /// In World Space.
-        /// </summary>
         public Vector3 ExtrapolatedAngularVelocity => _extrapolatedAngularVelocity;
+
+        // Kept for source compatibility. Extrapolation is performed by DisplayStylusConnection.
         public float ExtrapolationTime = 0.042f;
-        
-        protected ITrackingCotask _trackingCotask;
-        protected ICotask _extensionCotask;
-        protected IInputPin _inputPin;
-        
+
         private int _id;
+        private string _sourceId;
         private Display _display;
+        private DisplayStylusDeviceFrame _frame;
         private Pose _extrapolatedPose;
         private Vector3 _extrapolatedVelocity;
         private Vector3 _extrapolatedAngularVelocity;
+        private bool _disconnecting;
 
-        internal void Initialize(int id, Display display, ITrackingCotask trackingCotask, ICotask extensionsCotask,
-            IInputPin inputPin){
-            _display = display;
+        internal void Initialize(int id, string sourceId, Display display) {
             _id = id;
-            _trackingCotask = trackingCotask;
-            _extensionCotask = extensionsCotask;
-            _inputPin = inputPin;
+            _sourceId = sourceId;
+            _display = display;
         }
 
-        protected override IEnumerable StateMachine(){
-            if (!Destroying){
-                Application.onBeforeRender += OnBeforeRenderer;
+        internal void SetFrame(DisplayStylusDeviceFrame frame) {
+            _frame = frame;
+        }
+
+        internal void Disconnect() {
+            if (_disconnecting) {
+                return;
             }
 
-            string status = "Waiting cotasks.";
-
-            WaitCotasks:
-            if (Destroying) yield break;
-
-            if (_trackingCotask.IsNull() || _extensionCotask.IsNull() || _inputPin.IsNull()){
-                yield return status;
-                goto WaitCotasks;
-            }
-
-            status = string.Empty;
-            while (!_inputPin.IsNull() && !_trackingCotask.IsNull() && !_extensionCotask.IsNull() &&
-                   !_trackingCotask.isTaskFinished() &&
-                   !_extensionCotask.isTaskFinished()){
-                
-                if (Destroying) yield break;
-                
-                OnUpdateButtonPhase?.Invoke(this, _inputPin.getState() == PinState.Low);
-                yield return status;
-            }
-
+            _disconnecting = true;
             Destroy(gameObject);
         }
 
-        [BeforeRenderOrder(-29999)]
-        private void OnBeforeRenderer()
-        {
-            UpdateStylusPose(ExtrapolationTime);
+        protected override IEnumerable StateMachine() {
+            Application.onBeforeRender += OnBeforeRenderer;
+
+            while (!Destroying && !_disconnecting) {
+                if (_frame == null || !_frame.Connected) {
+                    yield return "Waiting for stylus data";
+                    continue;
+                }
+
+                OnUpdateButtonPhase?.Invoke(this, _frame.ButtonPressed);
+                yield return null;
+            }
         }
-        
-        private void UpdateStylusPose(float time)
-        {
-            if (_trackingCotask.IsNull() || _trackingCotask.isTaskFinished())
-            {
+
+        [BeforeRenderOrder(-29999)]
+        private void OnBeforeRenderer() {
+            UpdateStylusPose();
+        }
+
+        private void UpdateStylusPose() {
+            var frame = _frame;
+            if (frame == null || !frame.Connected || _display == null) {
                 return;
             }
-            
-            State extrapolatedState = _trackingCotask.getExtrapolatedState(Pose.identity, time);
-            Pose extrapolatedPose = extrapolatedState.pose;
-            
-            var inverseQ = Quaternion.Inverse(_display.EnvironmentRotation);
-            
-            transform.localPosition = inverseQ * extrapolatedPose.position;
-            transform.localRotation = inverseQ * extrapolatedPose.rotation;
-            
-            Transform displayHandleT = StylusesCreator.Instance.transform;
-            Vector3 worldVelocity = displayHandleT.TransformVector(inverseQ * extrapolatedState.velocity);
-            Vector3 angularVelocity = displayHandleT.TransformDirection(extrapolatedState.localAngularVelocity);
+
+            var inverseEnvironmentRotation = Quaternion.Inverse(_display.EnvironmentRotation);
+            transform.localPosition = inverseEnvironmentRotation * frame.Pose.position;
+            transform.localRotation = inverseEnvironmentRotation * frame.Pose.rotation;
+
+            var displayHandle = transform.parent;
+            var worldVelocity = displayHandle != null
+                ? displayHandle.TransformVector(inverseEnvironmentRotation * frame.Velocity)
+                : inverseEnvironmentRotation * frame.Velocity;
+            var worldAngularVelocity = displayHandle != null
+                ? displayHandle.TransformDirection(frame.LocalAngularVelocity)
+                : frame.LocalAngularVelocity;
 
             _extrapolatedPose = new Pose(transform.position, transform.rotation);
             _extrapolatedVelocity = worldVelocity;
-            _extrapolatedAngularVelocity = angularVelocity;
-
-            OnUpdatedPose?.Invoke(ExtrapolatedPose, ExtrapolatedVelocity, ExtrapolatedAngularVelocity);
+            _extrapolatedAngularVelocity = worldAngularVelocity;
+            OnUpdatedPose?.Invoke(_extrapolatedPose, _extrapolatedVelocity, _extrapolatedAngularVelocity);
         }
 
-        protected override void Destroy()
-        {
-            base.Destroy();
-
+        protected override void Destroy() {
             Application.onBeforeRender -= OnBeforeRenderer;
-            Antilatency.Utils.SafeDispose(ref _inputPin);
-            Antilatency.Utils.SafeDispose(ref _extensionCotask);
-            Antilatency.Utils.SafeDispose(ref _trackingCotask);
-            
-            OnUpdateButtonPhase?.Invoke(this,false);
+            OnUpdateButtonPhase?.Invoke(this, false);
             OnDestroying?.Invoke(this);
+            base.Destroy();
         }
     }
 }
